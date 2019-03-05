@@ -50,10 +50,7 @@ public class ProductController {
 	@ResponseBody
 	public List<Category> getAllCategories(){
 		List<Category> categories = categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "parentId"));
-//		List<Category> categories = categoryRepository.findAllCategory();
-		
-		
-		return categories;
+		return findNextSubCategory(0, categories, 1);
 	}
 	
 	@RequestMapping(value="/delete_product", produces = "application/json", method=RequestMethod.DELETE)
@@ -63,45 +60,29 @@ public class ProductController {
 		return Collections.singletonMap("product_id", productId);
 	}
 	
-	
-	//Save
-	@RequestMapping(value="/save_category", method=RequestMethod.POST)
-	public String saveCategory(@RequestBody Category category) {
-		categoryRepository.save(category);
-		return "Category Saved!";
-	}
-	
-	private List<Category> subCategory(List<Category> categories){
+	private List<Category> findNextSubCategory(int currentId, List<Category> categories, int depth){
 		List<Category> result = new ArrayList<Category>();
-		for(int i=0; i < categories.size(); i++) {
-			if(categories.get(i).getParentId() == 0) {
-				result.add(categories.get(i));
-				categories.remove(i);
-				for(int j=i; j < categories.size(); j++) {
-					
+		boolean isFound = false;
+		if(categories.get(currentId) != null) {
+			for(int i=currentId; i < categories.size(); i++) {
+				if(depth == 1) {
+					if(categories.get(i).getParentId() == 0) {
+						isFound = true;
+					}
+				} else if (depth > 1) {
+					if(categories.get(currentId).getId() == categories.get(i).getParentId()) {
+						isFound = true;
+					}
 				}
-			}
-		}
-		
-		
-		return result;
-	}
-	
-	private Category findNextSubCategory(int currentParentId, List<Category> categories, int matchId){
-		List<Category> result = new ArrayList<Category>();
-		if(categories.get(currentParentId) != null) {
-			for(int i=currentParentId; i < categories.size(); i++) {
-				if(categories.get(i).getParentId() == 0) {
+				
+				if(isFound) {
 					result.add(categories.get(i));
+					result.addAll(findNextSubCategory(i, categories, depth+1));
+					isFound = false;
 				}
-				if(categories.get(i).getParentId() != 0 ) {
-					
-				}
+				
 			}
 		}
-		
-		
-		
-		return null;
+		return result;
 	}
 }
